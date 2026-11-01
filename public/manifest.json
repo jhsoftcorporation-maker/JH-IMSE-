@@ -1,0 +1,24 @@
+{
+  "name": "JH IMSE - ক্লাউড ইআরপি, ইনভেন্টরি ও স্মার্ট পিওএস",
+  "short_name": "JH IMSE",
+  "description": "Enterprise Multi-Tenant B2B SaaS ERP, POS, HRM, CRM and E-Commerce System by JH Soft Corporation",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#7e22ce",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/assets/pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

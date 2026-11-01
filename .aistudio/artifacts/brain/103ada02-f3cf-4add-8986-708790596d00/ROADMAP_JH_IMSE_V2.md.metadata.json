@@ -1,0 +1,6 @@
+{
+  "summary":  "Master Architecture & Implementation Roadmap for JH IMSE Version 2.0 (V2). Analyzes all 20 screenshots of the previous single-purpose demoimse system and transforms it into a multi-tenant SaaS ERP with 95% mobile experience parity (Bottom Nav, Quick Access Grid, Nested Drawer, Dynamic Appearance #663399, Shift Register POS). Divides new capabilities into 10 distinct phases (Phase 16 to Phase 25): Mobile Adaptive Shell, Product Hierarchy & Labels, Returns & Physical Stock Count, Sales Agent Commissions, Service & AMC, Fixed Assets & Depreciation, Projects & Bookings, Client Portal, 3D Reports Suite, and QuickBooks/WooCommerce/Webhooks integrations.",
+  "updatedAt":  "2026-10-26T05:55:17.174170551Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

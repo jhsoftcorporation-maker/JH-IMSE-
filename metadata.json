@@ -1,0 +1,7 @@
+{
+  "name": "R13 JH IMSE",
+  "description": "All-in-One Multi-Tenant B2B SaaS ERP, Inventory POS, CRM, HRM, and E-Commerce Storefront Builder for Grocery, Pharmacy, Electronics, and Warehouses.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

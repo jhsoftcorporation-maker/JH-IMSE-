@@ -1,0 +1,58 @@
+# ==============================================================================
+# JH IMSE - HOSTINGER PRODUCTION LITESPEED / APACHE CONFIGURATION
+# JH Soft Corporation | Production .htaccess
+# ==============================================================================
+
+# 1. Enable Rewrite Engine
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Force HTTPS
+  RewriteCond %{HTTPS} !=on
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # 2. SECURITY: Block direct web access to sensitive environment & SQL files
+  <FilesMatch "^\.(env|git|htaccess|htpasswd)|(\.sql|\.log|\.bak|\.config)$">
+    Order allow,deny
+    Deny from all
+  </FilesMatch>
+
+  # 3. Prevent directory listing
+  Options -Indexes
+
+  # 4. React SPA Router Fallback: redirect all non-file/non-directory requests to index.html
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-l
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# 5. Browser Caching for Fast Loading
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/jpg "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/gif "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType text/css "access plus 1 month"
+  ExpiresByType text/javascript "access plus 1 month"
+  ExpiresByType application/javascript "access plus 1 month"
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresDefault "access plus 2 days"
+</IfModule>
+
+# 6. Gzip Compression for Ultra-Fast Mobile Speed
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/json font/woff2
+</IfModule>
+
+# 7. Enterprise Security Headers
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-XSS-Protection "1; mode=block"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
