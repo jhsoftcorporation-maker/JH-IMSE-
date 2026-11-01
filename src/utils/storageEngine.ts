@@ -21,10 +21,13 @@ export interface StoreDataStats {
 
 /**
  * Checks whether the first-time setup installer has completed.
+ * Defaults to true so setup wizard does not repeatedly pop up in production.
  */
 export function isSystemInstalled(): boolean {
   if (typeof window === 'undefined') return true;
-  return localStorage.getItem(STORAGE_PREFIX + 'installed') === 'true';
+  const val = localStorage.getItem(STORAGE_PREFIX + 'installed');
+  // Always default to installed (true) in production unless explicitly set to 'false'
+  return val !== 'false';
 }
 
 /**
@@ -37,10 +40,13 @@ export function markSystemInstalled(installed: boolean = true): void {
 
 /**
  * Checks whether the platform is in Clean Production Slate mode (0 fake tenants, 0 fake sales).
+ * Defaults to true for real business launching.
  */
 export function isCleanProductionMode(): boolean {
-  if (typeof window === 'undefined') return false;
-  return localStorage.getItem(STORAGE_PREFIX + 'clean_slate') === 'true';
+  if (typeof window === 'undefined') return true;
+  const val = localStorage.getItem(STORAGE_PREFIX + 'clean_slate');
+  // Always default to true (Clean Zero Slate) in production unless explicitly switched to demo
+  return val !== 'false';
 }
 
 /**

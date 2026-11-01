@@ -1,0 +1,9 @@
+{
+  "system": "JH IMSE Enterprise Cloud ERP & POS",
+  "version": "2.0.0",
+  "status": "installed",
+  "environment": "production",
+  "installedAt": "2026-11-01T11:35:00.000Z",
+  "databaseEngine": "Hostinger MySQL 8.0",
+  "locked": true
+}

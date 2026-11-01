@@ -8,7 +8,8 @@ import {
   Eye, Smartphone, Receipt, Lock, Unlock, ShoppingBag, Truck,
   Menu, X, Sliders, Monitor, Radio, Wrench, ShieldAlert,
   HelpCircle, Server, RefreshCcw, Power, ChevronDown, CheckCircle,
-  Mail, Send, Database, Download, Terminal, Wifi, WifiOff, FileCode, CheckSquare
+  Mail, Send, Database, Download, Terminal, Wifi, WifiOff, FileCode, CheckSquare,
+  Trash2
 } from 'lucide-react';
 import { 
   Tenant, BusinessType, PlanTier, TenantStatus, 
@@ -31,6 +32,7 @@ import { TenantLicenseModal } from './TenantLicenseModal';
 import { EditQuotaModal } from './EditQuotaModal';
 import { MasterSecurityVaultModal } from './superadmin/MasterSecurityVaultModal';
 import { getMasterSecurityConfig, MasterSecurityConfig } from '../utils/masterSecurity';
+import { getPersistedData, setPersistedData } from '../utils/storageEngine';
 
 export type SuperAdminTab = 
   | 'dashboard' 
@@ -173,7 +175,13 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({
   // Collections state
   const [packages, setPackages] = useState<SubscriptionPackage[]>(INITIAL_SUBSCRIPTION_PACKAGES);
   const [transactions, setTransactions] = useState<SubscriptionTransaction[]>(INITIAL_SUBSCRIPTION_TRANSACTIONS);
-  const [domains, setDomains] = useState<CustomDomainRequest[]>(INITIAL_CUSTOM_DOMAINS);
+  const [domains, setDomains] = useState<CustomDomainRequest[]>(() => 
+    getPersistedData<CustomDomainRequest[]>('custom_domains', [])
+  );
+  const [isAddDomainModalOpen, setIsAddDomainModalOpen] = useState(false);
+  const [newDomainTenantId, setNewDomainTenantId] = useState('');
+  const [newDomainName, setNewDomainName] = useState('');
+  const [domainError, setDomainError] = useState('');
   const [broadcasts, setBroadcasts] = useState<BroadcastNotice[]>(INITIAL_BROADCAST_NOTICES);
   const [licenses, setLicenses] = useState<LicenseKeyItem[]>(INITIAL_LICENSE_KEYS);
 
@@ -445,11 +453,60 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({
   };
 
   const handleDomainStatusChange = (domainId: string, status: CustomDomainRequest['status']) => {
-    setDomains(prev => prev.map(d => d.id === domainId ? { 
-      ...d, 
-      status, 
-      sslStatus: status === 'active' ? 'secured' : 'failed' 
-    } : d));
+    setDomains(prev => {
+      const updated = prev.map(d => d.id === domainId ? { 
+        ...d, 
+        status, 
+        sslStatus: status === 'active' ? ('secured' as const) : ('failed' as const)
+      } : d);
+      setPersistedData('custom_domains', updated);
+      return updated;
+    });
+  };
+
+  const handleDeleteDomain = (domainId: string) => {
+    if (window.confirm('আপনি কি এই কাস্টম ডোমেইনটি তালিকা থেকে মুছে ফেলতে চান?')) {
+      setDomains(prev => {
+        const updated = prev.filter(d => d.id !== domainId);
+        setPersistedData('custom_domains', updated);
+        return updated;
+      });
+    }
+  };
+
+  const handleCreateCustomDomain = (e: React.FormEvent) => {
+    e.preventDefault();
+    setDomainError('');
+    const cleanDomain = newDomainName.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+    if (!cleanDomain) {
+      setDomainError('দয়া করে সঠিক ডোমেইন নাম লিখুন (যেমন: clientstore.com)');
+      return;
+    }
+    const tenant = tenants.find(t => t.id === newDomainTenantId) || tenants[0];
+    if (!tenant) {
+      setDomainError('দয়া করে একজন ক্লায়েন্ট বা টেন্যান্ট নির্বাচন করুন');
+      return;
+    }
+
+    const newReq: CustomDomainRequest = {
+      id: 'dom-' + Date.now(),
+      tenantId: tenant.id,
+      tenantName: tenant.name,
+      domain: cleanDomain,
+      cnameTarget: 'cname.jh-imse.shop',
+      requestedDate: new Date().toISOString().slice(0, 10),
+      status: 'active',
+      sslStatus: 'secured',
+    };
+
+    setDomains(prev => {
+      const updated = [newReq, ...prev];
+      setPersistedData('custom_domains', updated);
+      return updated;
+    });
+    setIsAddDomainModalOpen(false);
+    setNewDomainName('');
+    setNewDomainTenantId('');
   };
 
   const handleCreateBroadcast = (e: React.FormEvent) => {
@@ -516,7 +573,7 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({
         { id: 'hostinger_mysql' as SuperAdminTab, label: 'হোস্টিংগার MySQL ক্লাউড', icon: Server, badge: 'MySQL 8.0' },
         { id: 'sms_smtp_gateway' as SuperAdminTab, label: 'এসএমএস ও ইমেইল গেটওয়ে', icon: Mail, badge: 'Active' },
         { id: 'courier_api' as SuperAdminTab, label: 'কুরিয়ার ডেলিভারি API হাব', icon: Truck, badge: 'Steadfast' },
-        { id: 'domains' as SuperAdminTab, label: 'কাস্টম ডোমেইন ও DNS', icon: Globe, badge: `${domains.length}` },
+        { id: 'domains' as SuperAdminTab, label: 'কাস্টম ডোমেইন ও DNS', icon: Globe, badge: domains.length > 0 ? `${domains.length}` : null },
         { id: 'broadcasts' as SuperAdminTab, label: 'লাইভ সিস্টেম নোটিশ', icon: Bell, badge: null },
       ]
     }
@@ -603,7 +660,7 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({
                     </div>
                     {item.badge && (
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold shrink-0 ${!isSidebarOpen ? 'lg:hidden' : ''} ${
-                        item.isAlert
+                        (item as any).isAlert
                           ? 'bg-rose-500 text-white animate-pulse'
                           : isActive
                           ? 'bg-purple-800 text-purple-100'
@@ -2274,79 +2331,157 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({
         {/* ============================================================== */}
         {/* TAB 5: CUSTOM DOMAINS */}
         {/* ============================================================== */}
+        {/* ============================================================== */}
+        {/* TAB 5: CUSTOM DOMAINS */}
+        {/* ============================================================== */}
         {activeTab === 'domains' && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-            <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="font-extrabold text-base text-slate-900">কাস্টম ডোমেইন ম্যাপিং ও SSL সার্টিফিকেট</h3>
-                <p className="text-xs text-slate-500">
-                  ক্লায়েন্ট স্টোরের নিজস্ব ডোমেইন (e.g. `*.com.bd`) ভেরিফিকেশন ও DNS সংযোগ
-                </p>
-              </div>
+          <div className="space-y-6">
+            {/* Unified Architecture Notice Banner */}
+            <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200 rounded-2xl p-6 shadow-xs">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-sm shrink-0">
+                    <Globe className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-extrabold text-base text-slate-900">ডিফল্ট মাল্টি-টেন্যান্ট সিস্টেম (স্বয়ংক্রিয় কেন্দ্রীয় অ্যাক্সেস)</h3>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                        সক্রিয় ও ডিফল্ট
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-1.5 max-w-2xl leading-relaxed">
+                      আপনার সফটওয়্যারের সকল সাধারণ গ্রাহক ও মার্চেন্ট সরাসরি মূল ডোমেইন <strong>jhsoft.online</strong> ব্যবহার করবেন। তাদের কোনো সাব-ডোমেইনের প্রয়োজন নেই। তারা শুধু তাদের ইউজার আইডি/মোবাইল নম্বর ও পাসওয়ার্ড দিয়ে লগইন করলেই স্বয়ংক্রিয়ভাবে তাদের নিজস্ব ডাটাবেস ও আইসোলেটেড ড্যাশবোর্ডে প্রবেশ করবেন।
+                    </p>
+                    <p className="text-[11px] text-blue-700 font-medium mt-2 flex items-center gap-1.5">
+                      <span>✨</span>
+                      <span><strong>ঐচ্ছিক এন্টারপ্রাইজ ফিচার:</strong> কাস্টম ডোমেইন শুধুমাত্র বিশেষ ১-২ জন কর্পোরেট ক্লায়েন্টের জন্য ঐচ্ছিক (হোয়াইট-লেবেল ব্র্যান্ডিং)।</span>
+                    </p>
+                  </div>
+                </div>
 
-              <div className="text-xs bg-purple-50 text-purple-900 border border-purple-200 px-3 py-1.5 rounded-xl font-mono">
-                CNAME রেকর্ড টার্গেট: <strong>cname.jh-imse.shop</strong>
+                <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                  <button
+                    onClick={() => {
+                      setNewDomainTenantId(tenants[0]?.id || '');
+                      setNewDomainName('');
+                      setDomainError('');
+                      setIsAddDomainModalOpen(true);
+                    }}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    ঐচ্ছিক এন্টারপ্রাইজ ডোমেইন যোগ করুন
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs min-w-[750px]">
-                <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] border-b border-slate-200">
-                  <tr>
-                    <th className="py-3.5 px-4">কোম্পানি</th>
-                    <th className="py-3.5 px-4">কাস্টম ডোমেইন</th>
-                    <th className="py-3.5 px-4">CNAME টার্গেট</th>
-                    <th className="py-3.5 px-4">অনুরোধের তারিখ</th>
-                    <th className="py-3.5 px-4">SSL স্ট্যাটাস</th>
-                    <th className="py-3.5 px-4">ম্যাপিং স্ট্যাটাস</th>
-                    <th className="py-3.5 px-4 text-right">অ্যাকশন</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {domains.map(dom => (
-                    <tr key={dom.id} className="hover:bg-slate-50 transition">
-                      <td className="py-3.5 px-4 font-bold text-slate-900">{dom.tenantName}</td>
-                      <td className="py-3.5 px-4 font-mono font-bold text-purple-700 flex items-center gap-1.5">
-                        <Globe className="w-3.5 h-3.5 text-slate-400" /> {dom.domain}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-slate-500">{dom.cnameTarget}</td>
-                      <td className="py-3.5 px-4 text-slate-600">{dom.requestedDate}</td>
-                      <td className="py-3.5 px-4">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          dom.sslStatus === 'secured' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                        }`}>
-                          <ShieldCheck className="w-3 h-3" />
-                          {dom.sslStatus === 'secured' ? 'SSL সুরক্ষিত (256-bit)' : 'প্রভিশনিং চলছে'}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          dom.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                        }`}>
-                          {dom.status === 'active' ? 'অনুমোদিত ও লাইভ' : 'DNS পেন্ডিং'}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right space-x-1">
-                        {dom.status !== 'active' ? (
-                          <button
-                            onClick={() => handleDomainStatusChange(dom.id, 'active')}
-                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold transition shadow-2xs"
-                          >
-                            অনুমোদন করুন
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => alert(`${dom.domain}-এর DNS ও SSL সংযোগ সম্পূর্ণ সুস্থ আছে!`)}
-                            className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold transition"
-                          >
-                            যাচাই করুন
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Domains Table / Zero Slate */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+              <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="font-extrabold text-sm text-slate-900">কাস্টম ডোমেইন ও DNS ম্যাপিং রেকর্ড</h4>
+                  <p className="text-xs text-slate-500">
+                    বিশেষ এন্টারপ্রাইজ ক্লায়েন্টদের নিজস্ব ডোমেইন সংযোগ ও SSL সার্টিফিকেট ট্র্যাকিং
+                  </p>
+                </div>
+
+                <div className="text-xs bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1.5 rounded-xl font-mono">
+                  CNAME টার্গেট: <strong>cname.jh-imse.shop</strong> (বা আপনার সার্ভার আইপি)
+                </div>
+              </div>
+
+              {domains.length === 0 ? (
+                <div className="p-12 text-center flex flex-col items-center justify-center">
+                  <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mb-3">
+                    <Globe className="w-7 h-7" />
+                  </div>
+                  <h4 className="font-bold text-slate-800 text-sm">কোনো কাস্টম ডোমেইন নেই (ক্লিন স্টেট)</h4>
+                  <p className="text-xs text-slate-500 max-w-md mt-1 mb-5 leading-relaxed">
+                    সকল সাবস্ক্রাইবার ও মার্চেন্ট কোনো ঝামেলা ছাড়াই সরাসরি মূল ডোমেইন <strong>jhsoft.online</strong>-এ ইউজার আইডি ও পাসওয়ার্ড দিয়ে সফটওয়্যার ব্যবহার করছেন।
+                  </p>
+                  <button
+                    onClick={() => {
+                      setNewDomainTenantId(tenants[0]?.id || '');
+                      setNewDomainName('');
+                      setDomainError('');
+                      setIsAddDomainModalOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    বিশেষ ক্লায়েন্টের জন্য ডোমেইন যুক্ত করুন
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs min-w-[750px]">
+                    <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] border-b border-slate-200">
+                      <tr>
+                        <th className="py-3.5 px-4">কোম্পানি</th>
+                        <th className="py-3.5 px-4">কাস্টম ডোমেইন</th>
+                        <th className="py-3.5 px-4">CNAME টার্গেট</th>
+                        <th className="py-3.5 px-4">অনুরোধের তারিখ</th>
+                        <th className="py-3.5 px-4">SSL স্ট্যাটাস</th>
+                        <th className="py-3.5 px-4">ম্যাপিং স্ট্যাটাস</th>
+                        <th className="py-3.5 px-4 text-right">অ্যাকশন</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {domains.map(dom => (
+                        <tr key={dom.id} className="hover:bg-slate-50 transition">
+                          <td className="py-3.5 px-4 font-bold text-slate-900">{dom.tenantName}</td>
+                          <td className="py-3.5 px-4 font-mono font-bold text-purple-700 flex items-center gap-1.5">
+                            <Globe className="w-3.5 h-3.5 text-slate-400" /> {dom.domain}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-slate-500">{dom.cnameTarget}</td>
+                          <td className="py-3.5 px-4 text-slate-600">{dom.requestedDate}</td>
+                          <td className="py-3.5 px-4">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              dom.sslStatus === 'secured' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              <ShieldCheck className="w-3 h-3" />
+                              {dom.sslStatus === 'secured' ? 'SSL সুরক্ষিত (256-bit)' : 'প্রভিশনিং চলছে'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              dom.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {dom.status === 'active' ? 'অনুমোদিত ও লাইভ' : 'DNS পেন্ডিং'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right space-x-2">
+                            {dom.status !== 'active' ? (
+                              <button
+                                onClick={() => handleDomainStatusChange(dom.id, 'active')}
+                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold transition shadow-2xs"
+                              >
+                                অনুমোদন করুন
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => alert(`${dom.domain}-এর DNS ও SSL সংযোগ সম্পূর্ণ সুস্থ আছে!`)}
+                                className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold transition"
+                              >
+                                যাচাই করুন
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteDomain(dom.id)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                              title="ডোমেইন মুছে ফেলুন"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -4230,6 +4365,89 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({
           </div>
         );
       })()}
+
+      {/* Add Custom Domain Modal for Optional Enterprise Clients */}
+      {isAddDomainModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-blue-100 text-blue-700 rounded-lg">
+                  <Globe className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900">ঐচ্ছিক এন্টারপ্রাইজ কাস্টম ডোমেইন</h3>
+                  <p className="text-[11px] text-slate-500">বিশেষ গ্রাহকের নিজস্ব ডোমেইন সংযোগ করুন</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsAddDomainModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {domainError && (
+              <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{domainError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateCustomDomain} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  কোম্পানি / মার্চেন্ট নির্বাচন করুন
+                </label>
+                <select
+                  value={newDomainTenantId}
+                  onChange={(e) => setNewDomainTenantId(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                >
+                  {tenants.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  কাস্টম ডোমেইন (Custom Domain)
+                </label>
+                <input
+                  type="text"
+                  placeholder="যেমন: mybrand.com বা store.brand.com"
+                  value={newDomainName}
+                  onChange={(e) => setNewDomainName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  ক্লায়েন্টকে তাদের DNS প্যানেলে CNAME হিসেবে <strong>cname.jh-imse.shop</strong> পয়েন্ট করতে হবে।
+                </p>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAddDomainModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+                >
+                  ডোমেইন ম্যাপ করুন
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Master Security Vault Modal (Google Authenticator 2FA, Backup Codes & Password Manager) */}
       <MasterSecurityVaultModal

@@ -4,6 +4,7 @@ import {
   Server, Key, Lock, Globe, Sparkles, RefreshCw, AlertCircle, 
   Check, Download, Copy, Eye, EyeOff, Layers, Building2, User, Phone, Mail
 } from 'lucide-react';
+import { isSystemInstalled } from '../utils/storageEngine';
 
 export interface DatabaseConfig {
   dbHost: string;
@@ -61,12 +62,12 @@ export const FirstTimeInstallerWizard: React.FC<FirstTimeInstallerWizardProps> =
     { name: 'Web Serial & Hardware API', status: 'pass', desc: 'থার্মাল প্রিন্টার ও স্কেল সাপোর্ট' }
   ]);
 
-  // Step 2: Database Configuration
+  // Step 2: Database Configuration (Blank for security - never leak credentials)
   const [dbConfig, setDbConfig] = useState<DatabaseConfig>({
     dbHost: 'localhost',
     dbPort: '3306',
-    dbName: 'u123456789_jhimse_prod',
-    dbUser: 'u123456789_jhimse_user',
+    dbName: '',
+    dbUser: '',
     dbPassword: '',
     dbCharset: 'utf8mb4',
     tablePrefix: 'jh_'
@@ -91,7 +92,7 @@ export const FirstTimeInstallerWizard: React.FC<FirstTimeInstallerWizardProps> =
   // Step 4: System Identity & Start Mode
   const [platformConfig, setPlatformConfig] = useState<PlatformSetupConfig>({
     appName: 'JH IMSE Cloud ERP & POS',
-    appUrl: 'https://jh-imse.shop',
+    appUrl: 'https://jhsoft.online',
     defaultCurrency: '৳',
     timezone: 'Asia/Dhaka',
     startMode: 'clean_production' // Default to zero dummy data!
@@ -105,6 +106,68 @@ export const FirstTimeInstallerWizard: React.FC<FirstTimeInstallerWizardProps> =
   const [copiedEnv, setCopiedEnv] = useState(false);
 
   if (!isOpen) return null;
+
+  // If system is already installed and locked, show secure status card instead of wizard
+  if (isSystemInstalled()) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in">
+        <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg p-6 sm:p-8 text-center space-y-5 animate-in zoom-in-95">
+          <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-inner">
+            <ShieldCheck className="w-9 h-9" />
+          </div>
+          <div>
+            <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-black uppercase tracking-wider">
+              System Installed & Locked
+            </span>
+            <h2 className="text-xl font-black text-slate-900 mt-2">
+              JH IMSE সিস্টেম ইনস্টল ও সম্পূর্ণ সুরক্ষিত
+            </h2>
+            <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+              আপনার হোস্টিংগার MySQL ডেটাবেজ এবং সার্ভার এনভায়রনমেন্ট সুরক্ষিত রয়েছে। কোনো পাসওয়ার্ড বা সংবেদনশীল ডেটা ফ্রন্টএন্ডে প্রদর্শিত হবে না। সিস্টেম এখন প্রোডাকশনের জন্য প্রস্তুত।
+            </p>
+          </div>
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left text-xs space-y-2 font-sans">
+            <div className="flex items-center justify-between text-slate-700 font-bold">
+              <span>হোস্টিংগার ডেটাবেজ:</span>
+              <span className="text-emerald-700 flex items-center gap-1 font-mono">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> সংযুক্ত (২০টি টেবিল প্রস্তুত)
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-slate-700 font-bold">
+              <span>এনভায়রনমেন্ট কনফিগারেশন:</span>
+              <span className="text-purple-700 font-semibold">Hostinger hPanel Managed</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-700 font-bold">
+              <span>সিস্টেম মোড:</span>
+              <span className="text-slate-900 font-black">ক্লিন প্রডাকশন (Zero Slate)</span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (onClose) onClose();
+                window.location.hash = '#super-admin';
+              }}
+              className="w-full py-3 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-md shadow-purple-900/20"
+            >
+              <Key className="w-4 h-4 text-amber-300" /> সুপার অ্যাডমিন কনসোলে লগইন করুন
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (onClose) onClose();
+                window.location.hash = '';
+              }}
+              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition"
+            >
+              ওয়েবসাইটে ফিরে যান
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Real Server-side Test DB Connection
   const handleTestDatabase = async () => {

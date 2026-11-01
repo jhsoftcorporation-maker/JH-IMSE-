@@ -76,34 +76,33 @@ export default function App() {
   const [isCleanSlate, setIsCleanSlate] = useState<boolean>(() => isCleanProductionMode());
   const [isInstallerOpen, setIsInstallerOpen] = useState(false);
 
-  // Core Data Collections with Auto-Persistence Engine
+  // Core Data Collections with Auto-Persistence Engine (Zero Dummy Slate by default in Production)
+  const isClean = isCleanProductionMode();
   const [tenants, setTenants] = useState<Tenant[]>(() => {
-    if (isCleanProductionMode()) {
-      return getPersistedData('tenants', []);
-    }
+    if (isClean) return getPersistedData('tenants', []);
     return getPersistedData('tenants', INITIAL_TENANTS);
   });
-  const [activeTenantId, setActiveTenantId] = useState<string>(() => getPersistedData('activeTenantId', 'tenant-1'));
-  const [products, setProducts] = useState<Product[]>(() => getPersistedData('products', INITIAL_PRODUCTS));
-  const [sales, setSales] = useState<Sale[]>(() => getPersistedData('sales', INITIAL_SALES));
-  const [customers, setCustomers] = useState<Customer[]>(() => getPersistedData('customers', INITIAL_CUSTOMERS));
-  const [employees, setEmployees] = useState<Employee[]>(() => getPersistedData('employees', INITIAL_EMPLOYEES));
-  const [onlineOrders, setOnlineOrders] = useState<OnlineOrder[]>(() => getPersistedData('onlineOrders', INITIAL_ONLINE_ORDERS));
-  const [warehouses, setWarehouses] = useState<Warehouse[]>(() => getPersistedData('warehouses', INITIAL_WAREHOUSES));
+  const [activeTenantId, setActiveTenantId] = useState<string>(() => getPersistedData('activeTenantId', 'tenant-default'));
+  const [products, setProducts] = useState<Product[]>(() => getPersistedData('products', isClean ? [] : INITIAL_PRODUCTS));
+  const [sales, setSales] = useState<Sale[]>(() => getPersistedData('sales', isClean ? [] : INITIAL_SALES));
+  const [customers, setCustomers] = useState<Customer[]>(() => getPersistedData('customers', isClean ? [] : INITIAL_CUSTOMERS));
+  const [employees, setEmployees] = useState<Employee[]>(() => getPersistedData('employees', isClean ? [] : INITIAL_EMPLOYEES));
+  const [onlineOrders, setOnlineOrders] = useState<OnlineOrder[]>(() => getPersistedData('onlineOrders', isClean ? [] : INITIAL_ONLINE_ORDERS));
+  const [warehouses, setWarehouses] = useState<Warehouse[]>(() => getPersistedData('warehouses', isClean ? [] : INITIAL_WAREHOUSES));
   const [activeWarehouseId, setActiveWarehouseId] = useState<string>('all');
-  const [quotations, setQuotations] = useState<Quotation[]>(() => getPersistedData('quotations', INITIAL_QUOTATIONS));
-  const [deliveryChallans, setDeliveryChallans] = useState<DeliveryChallan[]>(() => getPersistedData('deliveryChallans', INITIAL_DELIVERY_CHALLANS));
-  const [creditNotes, setCreditNotes] = useState<CreditNote[]>(() => getPersistedData('creditNotes', INITIAL_CREDIT_NOTES));
-  const [paymentReceipts, setPaymentReceipts] = useState<CustomerPaymentReceipt[]>(() => getPersistedData('paymentReceipts', INITIAL_PAYMENT_RECEIPTS));
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(INITIAL_ATTENDANCE_RECORDS);
+  const [quotations, setQuotations] = useState<Quotation[]>(() => getPersistedData('quotations', isClean ? [] : INITIAL_QUOTATIONS));
+  const [deliveryChallans, setDeliveryChallans] = useState<DeliveryChallan[]>(() => getPersistedData('deliveryChallans', isClean ? [] : INITIAL_DELIVERY_CHALLANS));
+  const [creditNotes, setCreditNotes] = useState<CreditNote[]>(() => getPersistedData('creditNotes', isClean ? [] : INITIAL_CREDIT_NOTES));
+  const [paymentReceipts, setPaymentReceipts] = useState<CustomerPaymentReceipt[]>(() => getPersistedData('paymentReceipts', isClean ? [] : INITIAL_PAYMENT_RECEIPTS));
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(isClean ? [] : INITIAL_ATTENDANCE_RECORDS);
   const [rolePermissions, setRolePermissions] = useState<RolePermission[]>(INITIAL_ROLE_PERMISSIONS);
-  const [salarySlips, setSalarySlips] = useState<SalarySlip[]>(INITIAL_SALARY_SLIPS);
-  const [expenses, setExpenses] = useState<ExpenseItem[]>(() => getPersistedData('expenses', INITIAL_EXPENSES));
-  const [suppliers, setSuppliers] = useState<Supplier[]>(() => getPersistedData('suppliers', INITIAL_SUPPLIERS));
-  const [purchaseOrders, setPurchaseOrders] = useState<SupplierPurchaseOrder[]>(() => getPersistedData('purchaseOrders', INITIAL_PURCHASE_ORDERS));
-  const [supplierPayments, setSupplierPayments] = useState<SupplierPayment[]>(() => getPersistedData('supplierPayments', INITIAL_SUPPLIER_PAYMENTS));
-  const [requisitions, setRequisitions] = useState<BranchRequisition[]>(INITIAL_BRANCH_REQUISITIONS);
-  const [transfers, setTransfers] = useState<StockTransferChallan[]>(() => getPersistedData('transfers', INITIAL_STOCK_TRANSFERS));
+  const [salarySlips, setSalarySlips] = useState<SalarySlip[]>(isClean ? [] : INITIAL_SALARY_SLIPS);
+  const [expenses, setExpenses] = useState<ExpenseItem[]>(() => getPersistedData('expenses', isClean ? [] : INITIAL_EXPENSES));
+  const [suppliers, setSuppliers] = useState<Supplier[]>(() => getPersistedData('suppliers', isClean ? [] : INITIAL_SUPPLIERS));
+  const [purchaseOrders, setPurchaseOrders] = useState<SupplierPurchaseOrder[]>(() => getPersistedData('purchaseOrders', isClean ? [] : INITIAL_PURCHASE_ORDERS));
+  const [supplierPayments, setSupplierPayments] = useState<SupplierPayment[]>(() => getPersistedData('supplierPayments', isClean ? [] : INITIAL_SUPPLIER_PAYMENTS));
+  const [requisitions, setRequisitions] = useState<BranchRequisition[]>(isClean ? [] : INITIAL_BRANCH_REQUISITIONS);
+  const [transfers, setTransfers] = useState<StockTransferChallan[]>(() => getPersistedData('transfers', isClean ? [] : INITIAL_STOCK_TRANSFERS));
 
   // Phase 12 AI Demand Forecasting & Auto-PO State
   const [autoPurchaseOrders, setAutoPurchaseOrders] = useState<AutoPurchaseOrder[]>(INITIAL_AUTO_PURCHASE_ORDERS);
@@ -222,12 +221,38 @@ export default function App() {
       setEmployees([]);
       setSubscriptionRequests([]);
       setOnlineOrders([]);
+      setQuotations([]);
+      setDeliveryChallans([]);
+      setCreditNotes([]);
+      setPaymentReceipts([]);
+      setExpenses([]);
+      setSuppliers([]);
+      setPurchaseOrders([]);
+      setSupplierPayments([]);
+      setTransfers([]);
+      setWarehouses([]);
+      setCashRegisterShifts([]);
+      setAttendanceRecords([]);
+      setSalarySlips([]);
+
       setPersistedData('tenants', []);
       setPersistedData('sales', []);
-      setProducts([]);
       setPersistedData('products', []);
       setPersistedData('customers', []);
+      setPersistedData('employees', []);
       setPersistedData('subscriptionRequests', []);
+      setPersistedData('onlineOrders', []);
+      setPersistedData('quotations', []);
+      setPersistedData('deliveryChallans', []);
+      setPersistedData('creditNotes', []);
+      setPersistedData('paymentReceipts', []);
+      setPersistedData('expenses', []);
+      setPersistedData('suppliers', []);
+      setPersistedData('purchaseOrders', []);
+      setPersistedData('supplierPayments', []);
+      setPersistedData('transfers', []);
+      setPersistedData('warehouses', []);
+      setPersistedData('cashRegisterShifts', []);
     } else {
       setTenants(INITIAL_TENANTS);
       setSales(INITIAL_SALES);
@@ -236,11 +261,38 @@ export default function App() {
       setEmployees(INITIAL_EMPLOYEES);
       setSubscriptionRequests(INITIAL_SUBSCRIPTION_REQUESTS);
       setOnlineOrders(INITIAL_ONLINE_ORDERS);
+      setQuotations(INITIAL_QUOTATIONS);
+      setDeliveryChallans(INITIAL_DELIVERY_CHALLANS);
+      setCreditNotes(INITIAL_CREDIT_NOTES);
+      setPaymentReceipts(INITIAL_PAYMENT_RECEIPTS);
+      setExpenses(INITIAL_EXPENSES);
+      setSuppliers(INITIAL_SUPPLIERS);
+      setPurchaseOrders(INITIAL_PURCHASE_ORDERS);
+      setSupplierPayments(INITIAL_SUPPLIER_PAYMENTS);
+      setTransfers(INITIAL_STOCK_TRANSFERS);
+      setWarehouses(INITIAL_WAREHOUSES);
+      setCashRegisterShifts(INITIAL_CASH_REGISTER_SHIFTS);
+      setAttendanceRecords(INITIAL_ATTENDANCE_RECORDS);
+      setSalarySlips(INITIAL_SALARY_SLIPS);
+
       setPersistedData('tenants', INITIAL_TENANTS);
       setPersistedData('sales', INITIAL_SALES);
       setPersistedData('products', INITIAL_PRODUCTS);
       setPersistedData('customers', INITIAL_CUSTOMERS);
+      setPersistedData('employees', INITIAL_EMPLOYEES);
       setPersistedData('subscriptionRequests', INITIAL_SUBSCRIPTION_REQUESTS);
+      setPersistedData('onlineOrders', INITIAL_ONLINE_ORDERS);
+      setPersistedData('quotations', INITIAL_QUOTATIONS);
+      setPersistedData('deliveryChallans', INITIAL_DELIVERY_CHALLANS);
+      setPersistedData('creditNotes', INITIAL_CREDIT_NOTES);
+      setPersistedData('paymentReceipts', INITIAL_PAYMENT_RECEIPTS);
+      setPersistedData('expenses', INITIAL_EXPENSES);
+      setPersistedData('suppliers', INITIAL_SUPPLIERS);
+      setPersistedData('purchaseOrders', INITIAL_PURCHASE_ORDERS);
+      setPersistedData('supplierPayments', INITIAL_SUPPLIER_PAYMENTS);
+      setPersistedData('transfers', INITIAL_STOCK_TRANSFERS);
+      setPersistedData('warehouses', INITIAL_WAREHOUSES);
+      setPersistedData('cashRegisterShifts', INITIAL_CASH_REGISTER_SHIFTS);
     }
   };
 

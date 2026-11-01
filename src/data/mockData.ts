@@ -581,58 +581,7 @@ export const INITIAL_SUBSCRIPTION_TRANSACTIONS: SubscriptionTransaction[] = [
   },
 ];
 
-export const INITIAL_CUSTOM_DOMAINS: CustomDomainRequest[] = [
-  {
-    id: 'dom-1',
-    tenantId: 'tenant-3',
-    tenantName: 'Apex Electronics & Gadgets',
-    domain: 'apexgadgets.com.bd',
-    cnameTarget: 'cname.jh-imse.shop',
-    requestedDate: '2025-01-15',
-    status: 'active',
-    sslStatus: 'secured',
-  },
-  {
-    id: 'dom-2',
-    tenantId: 'tenant-1',
-    tenantName: 'Rahim Pharmacy & Medicos',
-    domain: 'rahimpharmacy.com',
-    cnameTarget: 'cname.jh-imse.shop',
-    requestedDate: '2025-03-02',
-    status: 'active',
-    sslStatus: 'secured',
-  },
-  {
-    id: 'dom-3',
-    tenantId: 'tenant-5',
-    tenantName: 'Dhaka Fashion Mall & Fabrics',
-    domain: 'dhakafashion.com.bd',
-    cnameTarget: 'cname.jh-imse.shop',
-    requestedDate: '2025-06-18',
-    status: 'active',
-    sslStatus: 'secured',
-  },
-  {
-    id: 'dom-4',
-    tenantId: 'tenant-4',
-    tenantName: 'Prime Central Warehouse & Wholesale',
-    domain: 'primewarehouse.biz',
-    cnameTarget: 'cname.jh-imse.shop',
-    requestedDate: '2025-08-22',
-    status: 'active',
-    sslStatus: 'secured',
-  },
-  {
-    id: 'dom-5',
-    tenantId: 'tenant-2',
-    tenantName: 'Bismillah Super Grocery',
-    domain: 'bismillahsupermart.com',
-    cnameTarget: 'cname.jh-imse.shop',
-    requestedDate: '2026-10-20',
-    status: 'pending',
-    sslStatus: 'provisioning',
-  },
-];
+export const INITIAL_CUSTOM_DOMAINS: CustomDomainRequest[] = [];
 
 export const INITIAL_BROADCAST_NOTICES: BroadcastNotice[] = [
   {
